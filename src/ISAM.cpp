@@ -8,23 +8,30 @@ template<typename KeyType>
 ISAM<KeyType>::ISAM() {
     std::cout << "Calling constructor" << std::endl;
 
-    // Create the index and data page file if not exist
-    if (open_files(std::ios::in)) {
-        std::cout << "Files didn't exists" << std::endl;
-        if (!open_files(std::ios::out)) {
-            throw std::runtime_error("Files couldn't open");
-        };
-    }
+    create_files_if_not_exist();
 
-    // Close files
+    root = -1;
+
     close_files();
 };
 
 template<typename KeyType>
-bool ISAM<KeyType>::open_files(std::_Ios_Openmode op) {
+ISAM<KeyType>::ISAM(std::vector<std::pair<KeyType, POS_TYPE>> &data) {
+    std::cout << "Calling constructor" << std::endl;
+
+    root = metadata.getRootPosition();
+
+    create_files_if_not_exist();
+    close_files();
+
+    build(data);
+}
+
+template<typename KeyType>
+bool ISAM<KeyType>::open_files(std::ios::openmode op) {
     idx_file.open(idx_filename, op);
     dt_file.open(dt_filename, op);
-    return idx_file.good() && dt_file.good();
+    return (idx_file.good() && dt_file.good());
 }
 
 template<typename KeyType>
@@ -34,13 +41,86 @@ void ISAM<KeyType>::close_files() {
 }
 
 template<typename KeyType>
-void ISAM<KeyType>::build(const std::vector<std::pair<KeyType, POS_TYPE>> &data) {
+POS_TYPE ISAM<KeyType>::max_records(POS_TYPE levels) {
+    POS_TYPE M = metadata.getIndexPageCapacity();
+    POS_TYPE N = metadata.getDataPageCapacity();
+    POS_TYPE mult = 1;
+    for (int i = 0; i < levels; ++i) {
+        mult *= M+1;
+    }
+    return mult*N;
+}
+
+template<typename KeyType>
+void ISAM<KeyType>::create_files_if_not_exist() {
+    // Create the index and data page file if not exist
+    if (!open_files(std::ios::in)) {
+        std::cout << "Files didn't exists" << std::endl;
+        if (!open_files(std::ios::out)) {
+            throw std::runtime_error("Files couldn't open");
+        };
+    }
+}
+
+template<typename KeyType>
+void ISAM<KeyType>::build(std::vector<std::pair<KeyType, POS_TYPE>> &data) {
+    POS_TYPE M = metadata.getIndexPageCapacity();
+    POS_TYPE N = metadata.getDataPageCapacity();
+
+    if (data.size() < max_records(ISAM_LEVELS))
+        throw std::runtime_error("It's necesary have more than " + std::to_string(max_records(ISAM_LEVELS)) + " in order to create the ISAM");
+
+    auto compare = [](std::pair<KeyType, POS_TYPE> &a, std::pair<KeyType, POS_TYPE> &b) {
+        return a.first < b.first;
+    };
+    std::sort(begin(data), end(data), compare);
+
+    open_files(std::ios::binary | std::ios::app);
+
+    int index = 0; // Data index
+    IndexPage<KeyType> page0; //  first level page
+    for (int j = 0; j < M + 1; ++j) {
+        IndexPage<KeyType> page1; // second level page
+        for (int k = 0; k < M; ++k) {
+            IndexPage<KeyType> page2; // third level page
+            for (int h = 0; h < M + 1; ++h) {
+                DataPage<KeyType> page3; // data level page
+                for (int l = 0; l < N; ++l) {
+                    page3.setKey(data[index].first, l);
+                    page3.setRecord(data[index].second, l);
+                    ++index;
+                }
+                POS_TYPE pos = page3.write(dt_file);
+                page2.setChild(pos, h);
+                if (h < M + 1) page2.setKey(data[index].first, h);
+            }
+            page2.setIsLeaf(true);
+            POS_TYPE pos = page2.write(idx_file);
+            page1.setChild(pos, j);
+            if (k < M + 1) page1.setKey(data[index].first, k);
+        }
+        page1.setIsLeaf(false);
+        POS_TYPE pos = page1.write(idx_file);
+        page0.setChild(pos, j);
+        if (j < M + 1) page1.setKey(data[index].first, j);
+    }
+    page0.setIsLeaf(false);
+    root = page0.write(idx_file);
+
+    // Save root position in metadata
+    metadata.setRootPosition(root);
+
+    close_files();
+}
+
+template<typename KeyType>
+[[maybe_unused]] void ISAM<KeyType>::_build(std::vector<std::pair<KeyType, POS_TYPE>> &data) {
     if (data.empty())
         throw std::runtime_error("Building the ISAM failed, data is empty!");
 
     // Get the min and max value of the dataset
-    KeyType min;
-    KeyType max;
+    KeyType min = std::numeric_limits<KeyType>::max();
+    KeyType max = std::numeric_limits<KeyType>::min();
 
     for (const auto &pair: data) {
         if (pair.first >= max) {
@@ -64,51 +144,62 @@ void ISAM<KeyType>::build(const std::vector<std::pair<KeyType, POS_TYPE>> &data)
      */
 
     int64_t M = metadata.getIndexPageCapacity();
-    int64_t n = M + (M+1)*M + pow(M+1, 2);
+    int64_t n = M + (M + 1) * M + pow(M + 1, 2);
 
-     /*
-     * inf, sup: min and max key in data.
-     *
-     *         step = (sup - inf) / N
-     *
-     */
+    /*
+    * inf, sup: min and max key in data.
+    *
+    *         step = (sup - inf) / N
+    *
+    */
 
-    KeyType step = std::floor((max - min) / n);
+    double step = std::floor((max - min) / (1.0 * n));
 
 
     /*
      * Let f(i) the number of keys in the left child of a node (IndexPage) with height i
      *
-     *             f(i) = {0 : i == 0, M : i == 1, f(i-1) + M*(M+1)^i-1 : i >= 2}
+     *  f(i) = {
+     *          0                       : i == 0
+     *          M                       : i == 1
+     *          M + Σ M*(M+1)^(j)       : i >= 2
+     *          from j=1 to i-1
+     *         }
      *
      * Where 0 <= i < d
      * */
 
     POS_TYPE f[ISAM_LEVELS] = {0, 1};
     for (int i = 2; i < ISAM_LEVELS; ++i) {
-        f[i] = f[i-1] + M * pow(M+1, i-1);
+        POS_TYPE sum = 0;
+        for (int j = 1; j <= i - 1; ++j) {
+            sum += M * pow(M + 1, j);
+        }
+        f[i] = M + sum;
     }
 
-    auto num_of_nodes = [M](const POS_TYPE& i){
-        return pow(M+1, ISAM_LEVELS - i - 1);
+    auto num_of_nodes = [M](const POS_TYPE &i) {
+        return pow(M + 1, ISAM_LEVELS - i - 1);
     };
 
-    auto nextLevel = [&f](const POS_TYPE& i) -> const POS_TYPE {
+    auto nextLevel = [&f](const POS_TYPE &i) -> const POS_TYPE {
         return f[i];
     };
 
-    auto nextKey = [&f](const POS_TYPE& x, const POS_TYPE& i) -> const POS_TYPE {
+    auto nextKey = [&f](const POS_TYPE &x, const POS_TYPE &i) -> const POS_TYPE {
         return x + f[i] + 1;
     };
 
-    auto nextBrother = [&f](const POS_TYPE& x, const POS_TYPE& i) -> const POS_TYPE {
-        return x + 2*f[i] + 2;
+    auto nextBrother = [&f](const POS_TYPE &x, const POS_TYPE &i) -> const POS_TYPE {
+        return x + 2 * f[i] + 2;
     };
 
     POS_TYPE child_pos_leaf = 0, child_pos = 0, inserter = 0;
 
+    open_files(std::ios::binary | std::ios::app);
+
     // For each level
-    for (int i = ISAM_LEVELS - 1; i == 0;  --i) {
+    for (int i = ISAM_LEVELS - 1; i >= 0; --i) {
         inserter = nextLevel(i);
 
         // For each IndexPage in ith level
@@ -117,7 +208,7 @@ void ISAM<KeyType>::build(const std::vector<std::pair<KeyType, POS_TYPE>> &data)
 
             // For each key in kth IndexPage in ith level
             for (int j = 0; j < M; ++j) {
-                page.setKey(min + inserter * step, j);
+                page.setKey(KeyType(min + inserter * step), j);
                 inserter = nextKey(inserter, i);
                 if (i != 0) {
                     page.setChild(child_pos, j);
@@ -127,18 +218,73 @@ void ISAM<KeyType>::build(const std::vector<std::pair<KeyType, POS_TYPE>> &data)
                     page.setIsLeaf(true);
                 }
             }
-            page.write();
+            page.write(idx_file);
 
             if (i < ISAM_LEVELS - 1) { // Root haven't brothers
                 inserter = nextBrother(inserter, i);
             }
         }
     }
+    close_files();
 
-
-
-
+    open_files(std::ios::binary | std::ios::in);
+    insert(data);
+    close_files();
 }
+
+template<typename KeyType>
+POS_TYPE ISAM<KeyType>::search(KeyType key) {
+    if (root == -1)
+        throw std::runtime_error("No data in ISAM, please build before");
+
+    open_files(std::ios::binary | std::ios::in);
+    POS_TYPE pos = _search(root, key);
+    close_files();
+    return pos;
+}
+
+template<typename KeyType>
+POS_TYPE ISAM<KeyType>::_search(POS_TYPE node_pos, KeyType key) {
+    // Read the node
+    idx_file.seekg(node_pos);
+    IndexPage<KeyType> node;
+    node.read(idx_file);
+
+    int M = metadata.getIndexPageCapacity();
+
+    int index = 0;
+    // Search left-to-right where go down
+    while(index < M+1 && node.getKeys()[index] < key){
+        ++index;
+    }
+
+    if (node.getIsLeaf())
+    {
+        DataPage<KeyType> page;
+
+        do {
+            // Read the Data page
+            dt_file.seekg(node.getChildren()[index]);
+            page.read(dt_file);
+
+            for (int i = 0; i < page.getCapacity(); ++i) {
+                if (page.getKeys()[i] == key) {
+                    return page.getRecords()[i];
+                }
+            }
+
+        } while (page.getNext() != -1);
+
+        return POS_TYPE (-1);
+    }
+    else
+    {
+        // Call recursively search with the new node
+        _search(node.getChildren()[index], key);
+    }
+    return -1;
+}
+
 
 template<typename KeyType>
 ISAM<KeyType>::~ISAM() {

@@ -44,6 +44,21 @@ void Metadata<KeyType>::read() {
 }
 
 template<typename KeyType>
+void Metadata<KeyType>::setIndexPageCapacity(int indexPageCapacity) {
+    index_page_capacity = indexPageCapacity;
+}
+
+template<typename KeyType>
+void Metadata<KeyType>::setDataPageCapacity(int dataPageCapacity) {
+    data_page_capacity = dataPageCapacity;
+}
+
+template<typename KeyType>
+void Metadata<KeyType>::setRootPosition(POS_TYPE rootPosition) {
+    root_position = rootPosition;
+}
+
+template<typename KeyType>
 int Metadata<KeyType>::getIndexPageCapacity() const  {
     return index_page_capacity;
 }

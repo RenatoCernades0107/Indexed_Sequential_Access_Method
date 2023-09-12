@@ -24,9 +24,9 @@ public:
 
     void setIsLeaf(bool isLeaf);
 
-    void write(std::ofstream& file);
+    POS_TYPE write(std::fstream& file);
 
-    void read(std::ifstream& file);
+    void read(std::fstream& file);
 
     int64_t size_of();
 
@@ -40,6 +40,5 @@ public:
 
     ~IndexPage();
 };
-
 
 #endif //INDEXED_SEQUENTIAL_ACCESS_METHOD_INDEXPAGE_H

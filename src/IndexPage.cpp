@@ -41,43 +41,35 @@ void IndexPage<KeyType>::setIsLeaf(bool isLeaf) {
 }
 
 template<typename KeyType>
-void IndexPage<KeyType>::write(std::ofstream& file) {
-    std::stringstream buffer;
-    int64_t capacity =  this->getCapacity();
+POS_TYPE IndexPage<KeyType>::write(std::fstream& file) {
+    POS_TYPE pos = file.tellp();
+    int64_t capacity = this->getCapacity();
+    // Write isLeaf attribute
+    file.write((char*)& isLeaf, sizeof(isLeaf));
     // Write keys
     for (int i = 0; i < capacity; ++i) {
-        buffer.write((char*)& (keys[i]), sizeof(KeyType));
+        file.write((char*)& (keys[i]), sizeof(keys[i]));
     }
     // Write children positions
     for (int i = 0; i < capacity + 1; ++i) {
-        buffer.write((char*)& (children[i]), sizeof(POS_TYPE));
+        file.write((char*)& (children[i]), sizeof(children[i]));
     }
-    // Write isLeaf attribute
-    buffer.write((char*)& isLeaf, sizeof(bool));
-
-    file.write(buffer.str().c_str(), this->size_of());
+    return pos;
 }
 
-// TODO ARREGLAR ESTO
 template<typename KeyType>
-void IndexPage<KeyType>::read(std::ifstream& file) {
-    char* buffer = new char[this->size_of()];
-    file.read(buffer, this->size_of());
-
-    std::stringstream ss{std::string(buffer)};
-    delete [] buffer;
-
+void IndexPage<KeyType>::read(std::fstream& file) {
     int64_t capacity = this->getCapacity();
+    // Read isLeaf attribute
+    file.read((char*)& isLeaf, sizeof(isLeaf));
     // Read keys
     for (int i = 0; i < capacity; ++i) {
-       ss.read((char*)& keys[i], sizeof(KeyType));
+       file.read((char*)& keys[i], sizeof(keys[i]));
     }
     // Read children positions
     for (int i = 0; i < capacity + 1; ++i) {
-        ss.read((char*)& children[i], sizeof(POS_TYPE));
+        file.read((char*)& children[i], sizeof(children[i]));
     }
-    // Read isLeaf attribute
-    ss.read((char*)& isLeaf, sizeof(bool));
 }
 
 
@@ -115,12 +107,14 @@ bool IndexPage<KeyType>::getIsLeaf() const {
 
 template<typename KeyType>
 int64_t IndexPage<KeyType>::getCapacity() const {
-    return std::floor((buffer::BUFFER_SIZE - sizeof(POS_TYPE) - 2 * sizeof(KeyType *) - sizeof(bool)) /
+    auto a = std::floor((buffer::BUFFER_SIZE - sizeof(POS_TYPE) - 2 * sizeof(KeyType *) - sizeof(bool)) /
                       (sizeof(KeyType) + sizeof(POS_TYPE)));
+    return 2;
 }
+
 
 template<typename KeyType>
 IndexPage<KeyType>::~IndexPage() {
-    delete keys;
-    delete children;
+    delete [] keys;
+    delete [] children;
 }

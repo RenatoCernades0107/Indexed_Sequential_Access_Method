@@ -26,6 +26,12 @@ private:
 public:
     Metadata();
 
+    void setIndexPageCapacity(int indexPageCapacity);
+
+    void setDataPageCapacity(int dataPageCapacity);
+
+    void setRootPosition(POS_TYPE rootPosition);
+
     int getIndexPageCapacity() const;
 
     int getDataPageCapacity() const;
@@ -36,6 +42,8 @@ private:
 
     void read();
 };
+
+
 
 
 #endif //INDEXED_SEQUENTIAL_ACCESS_METHOD_METADATA_H

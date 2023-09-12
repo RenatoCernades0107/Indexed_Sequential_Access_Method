@@ -8,6 +8,8 @@
 #include "src/Metadata.cpp"
 #include "src/IndexPage.cpp"
 #include <vector>
+#include <limits>
+#include <algorithm>
 
 constexpr int64_t ISAM_LEVELS = 3;
 
@@ -28,8 +30,8 @@ private:
     Metadata<KeyType> metadata;
     POS_TYPE root; // Root of the ISAM
 
-    std::string idx_filename; // Name of the index page file
-    std::string dt_filename; // Name of the data page file
+    std::string idx_filename = "isam_index_file.dat"; // Name of the index page file
+    std::string dt_filename = "isam_data_file.dat"; // Name of the data page file
     std::string ds_filename; // Name of the dataset file
 
     std::fstream idx_file; // Index page file
@@ -39,17 +41,27 @@ private:
 public:
     ISAM();
 
+    explicit ISAM(std::vector<std::pair<KeyType, POS_TYPE>> &data);
+
     bool open_files(std::ios::openmode op);
+
     void close_files();
+
+    POS_TYPE max_records(POS_TYPE levels);
+
+    POS_TYPE search(KeyType key);
 
     ~ISAM();
 
+    void build(std::vector<std::pair<KeyType, POS_TYPE>> &data);
+
 private:
+    void create_files_if_not_exist();
 
-    void build(const std::vector<std::pair<KeyType, POS_TYPE>>& data);
+    [[maybe_unused]] void _build(std::vector<std::pair<KeyType, POS_TYPE>> &data);
+
+    POS_TYPE _search(POS_TYPE node_pos, KeyType key);
 };
-
-
 
 
 #endif //INDEXED_SEQUENTIAL_ACCESS_METHOD_ISAM_H

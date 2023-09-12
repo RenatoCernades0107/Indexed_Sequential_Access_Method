@@ -19,11 +19,26 @@ private:
     KeyType *keys = nullptr;
     POS_TYPE *records = nullptr;
     POS_TYPE next;
-
 public:
-    DataPage() = default;
+    DataPage();
+
+    KeyType *getKeys() const;
+
+    void setKey(POS_TYPE key, int64_t pos);
+
+    POS_TYPE *getRecords() const;
+
+    void setRecord(POS_TYPE record, int64_t pos);
+
+    POS_TYPE getNext() const;
+
+    void setNext(POS_TYPE next);
 
     int64_t getCapacity() const;
+
+    POS_TYPE write(std::fstream& file);
+
+    void read(std::fstream& file);
 
     ~DataPage();
 };
