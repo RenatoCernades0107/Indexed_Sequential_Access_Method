@@ -17,8 +17,9 @@ template<typename KeyType>
 class DataPage {
 private:
     KeyType *keys = nullptr;
-    POS_TYPE *records = nullptr;
+    POS_TYPE *records_pos = nullptr;
     POS_TYPE next;
+    POS_TYPE count;
 public:
     DataPage();
 
@@ -26,22 +27,31 @@ public:
 
     void setKey(POS_TYPE key, int64_t pos);
 
+    bool isFull() const;
+
+    POS_TYPE getCount() const;
+
     POS_TYPE *getRecords() const;
 
-    void setRecord(POS_TYPE record, int64_t pos);
+    void setRecord(std::pair<KeyType, POS_TYPE> record, int64_t pos);
+
+    std::pair<KeyType, POS_TYPE> getRecord(int64_t pos);
 
     POS_TYPE getNext() const;
 
     void setNext(POS_TYPE next);
 
-    int64_t getCapacity() const;
+    static int64_t getCapacity();
 
     POS_TYPE write(std::fstream& file);
 
     void read(std::fstream& file);
 
+    static int64_t size_of();
+
+    void remove(int64_t i);
+
     ~DataPage();
 };
-
 
 #endif //INDEXED_SEQUENTIAL_ACCESS_METHOD_DATAPAGE_H

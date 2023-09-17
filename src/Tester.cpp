@@ -13,6 +13,9 @@ void Tester<KeyType>::test_all() {
     this->test_write_IndexPage();
     this->test_build_ISAM();
     this->test_search_ISAM();
+    this->test_insert_ISAM();
+    this->test_range_search_ISAM();
+    this->test_remove_ISAM();
 }
 
 template<typename KeyType>
@@ -69,17 +72,49 @@ void Tester<KeyType>::test_write_IndexPage() {
 
 template<typename KeyType>
 void Tester<KeyType>::test_build_ISAM() {
-    int n = 81; // Num of records
+    cout << "TEST test_build_ISAM: " << endl;
+
+    int n = 81; // Num of records_pos
     std::vector<std::pair<KeyType, POS_TYPE>> test_data;
     for (int i = 0; i < n; ++i) {
         std::pair<KeyType, POS_TYPE> p = {i+1, i};
         test_data.push_back(p);
     }
     isam.build(test_data);
+    cout << "build test finished correctly" << endl;
 }
 
 template<typename KeyType>
 void Tester<KeyType>::test_search_ISAM() {
     cout << "TEST test_search_ISAM: " << endl;
     cout << boolalpha << (isam.search(80) == 79) << endl;
+    cout << boolalpha << (isam.search(56) == 55) << endl;
+    cout << boolalpha << (isam.search(10) == 9) << endl;
 }
+
+template<typename KeyType>
+void Tester<KeyType>::test_insert_ISAM() {
+    cout << "TEST test_insert_ISAM: " << endl;
+    cout << boolalpha << (isam.add(std::make_pair(10, 777)) != 777) << endl;
+    cout << boolalpha << (isam.add(std::make_pair(90, 888)) == 888) << endl;
+    cout << boolalpha << (isam.add(std::make_pair(55, 999)) != 999) << endl;
+    cout << boolalpha << (isam.add(std::make_pair(100, 1111)) == 1111) << endl;
+}
+
+template<typename KeyType>
+void Tester<KeyType>::test_range_search_ISAM() {
+    cout << "TEST test_range_serch_ISAM: " << endl;
+    vector<POS_TYPE> result = isam.range_search(15, 19);
+    int i = 14;
+    for(auto r : result) {
+        cout << (r == i++) << endl;
+    }
+}
+
+template<typename KeyType>
+void Tester<KeyType>::test_remove_ISAM() {
+    cout << "TEST test_remove_ISAM: " << endl;
+    POS_TYPE position = isam.remove(68);
+    cout << (position == 67) << " : " << position << endl;
+}
+

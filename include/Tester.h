@@ -14,8 +14,10 @@ public:
     void test_write_IndexPage();
     void test_build_ISAM();
     void test_search_ISAM();
+    void test_insert_ISAM();
+    void test_range_search_ISAM();
+    void test_remove_ISAM();
 };
-
 
 
 

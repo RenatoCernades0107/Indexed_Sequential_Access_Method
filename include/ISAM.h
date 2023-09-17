@@ -32,14 +32,15 @@ private:
 
     std::string idx_filename = "isam_index_file.dat"; // Name of the index page file
     std::string dt_filename = "isam_data_file.dat"; // Name of the data page file
-    std::string ds_filename; // Name of the dataset file
 
     std::fstream idx_file; // Index page file
     std::fstream dt_file; // Data page file
-    std::fstream ds_file; // Dataset file
-
 public:
     ISAM();
+
+    const std::string &getIdxFilename() const;
+
+    const std::string &getDtFilename() const;
 
     explicit ISAM(std::vector<std::pair<KeyType, POS_TYPE>> &data);
 
@@ -51,6 +52,12 @@ public:
 
     POS_TYPE search(KeyType key);
 
+    POS_TYPE add(std::pair<KeyType, POS_TYPE> record);
+
+    POS_TYPE remove(KeyType key);
+
+    std::vector<POS_TYPE> range_search(KeyType beg, KeyType end);
+
     ~ISAM();
 
     void build(std::vector<std::pair<KeyType, POS_TYPE>> &data);
@@ -61,7 +68,15 @@ private:
     [[maybe_unused]] void _build(std::vector<std::pair<KeyType, POS_TYPE>> &data);
 
     POS_TYPE _search(POS_TYPE node_pos, KeyType key);
+
+    POS_TYPE _insert(POS_TYPE node_pos, std::pair<KeyType, POS_TYPE> record);
+
+    void _range_search(POS_TYPE node_pos, KeyType beg, KeyType end, std::vector<POS_TYPE>& result);
+
+    POS_TYPE _remove(POS_TYPE node_pos, KeyType key);
 };
+
+
 
 
 #endif //INDEXED_SEQUENTIAL_ACCESS_METHOD_ISAM_H
