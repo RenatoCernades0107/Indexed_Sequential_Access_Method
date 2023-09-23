@@ -26,7 +26,7 @@ POS_TYPE DataPage<KeyType>::write(std::fstream &file) {
         file.write((char *) &(keys[i]), sizeof(keys[i]));
     }
     // Write children positions
-    for (int i = 0; i < capacity + 1; ++i) {
+    for (int i = 0; i < capacity; ++i) {
         file.write((char *) &(records_pos[i]), sizeof(records_pos[i]));
     }
     return pos;
@@ -44,7 +44,7 @@ void DataPage<KeyType>::read(std::fstream &file) {
         file.read((char *) &keys[i], sizeof(keys[i]));
     }
     // Read children positions
-    for (int i = 0; i < capacity + 1; ++i) {
+    for (int i = 0; i < capacity; ++i) {
         file.read((char *) &records_pos[i], sizeof(records_pos[i]));
     }
 }
@@ -55,23 +55,23 @@ int64_t DataPage<KeyType>::size_of() {
     int64_t capacity = getCapacity();
     size += sizeof(count) + sizeof(next);
     size += sizeof(KeyType) * capacity;
-    size += sizeof(POS_TYPE) * (capacity + 1);
+    size += sizeof(POS_TYPE) * (capacity);
     return size;
 }
 
 /*
  * N: Number of records_pos in ISAM Data Pages
- *              |-----------------keys-----------------|   |------------------children---------------|   |-----next-----|   |-----count-----|
- * BufferSize = sizeof(KeyType*) + (sizeof(KeyType) * N) + sizeof(KeyType*) + sizeof(POS_TYPE) * (N+1) + sizeof(POS_TYPE) + sizeof(POS_TYPE)
- * BufferSize = sizeof(KeyType*) + (sizeof(KeyType) * N) + sizeof(KeyType*) + (sizeof(POS_TYPE) * N) + sizeof(POS_TYPE) + sizeof(POS_TYPE) + sizeof(POS_TYPE)
- * BufferSize = N * (sizeof(KeyType) + sizeof(POS_TYPE)) + (3 * sizeof(POS_TYPE)) + (2 * sizeof(KeyType*))
- * N = (BufferSize - 3 * sizeof(POS_TYPE) - 2 * sizeof(KeyType*)) / (sizeof(KeyType) + sizeof(POS_TYPE))
+ *              |-----------------keys-----------------|   |------------------records---------------|   |-----next-----|   |-----count-----|
+ * BufferSize = sizeof(KeyType*) + (sizeof(KeyType) * N) + sizeof(KeyType*) + sizeof(POS_TYPE) * (N) + sizeof(POS_TYPE) + sizeof(POS_TYPE)
+ * BufferSize = sizeof(KeyType*) + (sizeof(KeyType) * N) + sizeof(KeyType*) + (sizeof(POS_TYPE) * N) + sizeof(POS_TYPE) + sizeof(POS_TYPE)
+ * BufferSize = N * (sizeof(KeyType) + sizeof(POS_TYPE)) + (2 * sizeof(POS_TYPE)) + (2 * sizeof(KeyType*))
+ * N = (BufferSize - 2 * sizeof(POS_TYPE) - 2 * sizeof(KeyType*)) / (sizeof(KeyType) + sizeof(POS_TYPE))
  *
  */
 
 template<typename KeyType>
 int64_t DataPage<KeyType>::getCapacity() {
-    auto a = std::floor((buffer::BUFFER_SIZE - 3 * sizeof(POS_TYPE) - 2 * sizeof(KeyType *)) /
+    auto a = std::floor((buffer::BUFFER_SIZE - 2 * sizeof(POS_TYPE) - 2 * sizeof(KeyType *)) /
                         (sizeof(KeyType) + sizeof(POS_TYPE)));
     return 3;
 }

@@ -268,11 +268,11 @@ POS_TYPE ISAM<KeyType>::_search(POS_TYPE node_pos, KeyType key) {
 
     int index = 0;
     // Search left-to-right where go down
-    KeyType *keys = node.getKeys();
-    while (index < M && keys[index] <= key) {
+
+    while (index < M && node.getkey(index) <= key) {
         ++index;
     }
-
+    std::cout << node.getkey(index) << std::endl;
     if (node.getIsLeaf()) {
         DataPage<KeyType> page;
         POS_TYPE data_pos = node.getChildren()[index];
@@ -295,7 +295,7 @@ POS_TYPE ISAM<KeyType>::_search(POS_TYPE node_pos, KeyType key) {
         return POS_TYPE(-1);
     } else {
         // Call recursively search with the new node
-        POS_TYPE new_pos = node.getChildren()[index];
+        POS_TYPE new_pos = node.getChild(index);
         return _search(new_pos, key);
     }
 }

@@ -43,6 +43,7 @@ public:
 
     static int64_t getCapacity();
 
+
     POS_TYPE write(std::fstream& file);
 
     void read(std::fstream& file);

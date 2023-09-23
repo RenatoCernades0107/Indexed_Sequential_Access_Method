@@ -34,11 +34,18 @@ public:
 
     POS_TYPE *getChildren() const;
 
+    POS_TYPE getChild(POS_TYPE pos);
+
+    KeyType getkey(POS_TYPE pos);
+
     bool getIsLeaf() const;
 
     int64_t getCapacity() const;
 
     ~IndexPage();
 };
+
+
+
 
 #endif //INDEXED_SEQUENTIAL_ACCESS_METHOD_INDEXPAGE_H

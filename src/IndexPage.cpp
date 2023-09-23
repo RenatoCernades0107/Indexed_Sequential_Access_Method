@@ -95,6 +95,16 @@ bool IndexPage<KeyType>::getIsLeaf() const {
     return isLeaf;
 }
 
+template<typename KeyType>
+POS_TYPE IndexPage<KeyType>::getChild(POS_TYPE pos) {
+    return children[pos];
+}
+
+template<typename KeyType>
+KeyType IndexPage<KeyType>::getkey(POS_TYPE pos) {
+    return keys[pos];
+}
+
 /*
  * M: Number of keys of ISAM Indexes Pages
  *              |------------------keys-----------------|  |------------------children---------------|  |---- isLeaf ---|
