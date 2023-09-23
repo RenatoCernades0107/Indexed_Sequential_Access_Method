@@ -5,26 +5,25 @@
 #ifndef INDEXED_SEQUENTIAL_ACCESS_METHOD_FILES_H
 #define INDEXED_SEQUENTIAL_ACCESS_METHOD_FILES_H
 
-#include <string>
 #include <filesystem>
+#include <string>
 
 #if defined(_WIN64)
-    #include <direct.h>
+#include <direct.h>
 #elif defined(__unix__)
+#include <sys/stat.h>
 #include <sys/types.h>
-    #include <sys/stat.h>
 #endif
 
-
-bool directory_exists(const std::string& path) {
-    return std::filesystem::is_directory(path);
+bool directory_exists(const std::string &path) {
+  return std::filesystem::is_directory(path);
 }
 
 void createDir(std::string dir) {
 #if defined(_WIN64)
-    _mkdir(dir.data());
+  _mkdir(dir.data());
 #elif defined(__unix__)
-    mkdir(dir.data(), 0777);
+  mkdir(dir.data(), 0777);
 #endif
 }
 
@@ -35,4 +34,4 @@ void createDir(std::string dir) {
  *
  */
 
-#endif //INDEXED_SEQUENTIAL_ACCESS_METHOD_FILES_H
+#endif // INDEXED_SEQUENTIAL_ACCESS_METHOD_FILES_H
