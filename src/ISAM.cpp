@@ -121,6 +121,14 @@ void ISAM<KeyType>::build(std::vector<std::pair<KeyType, POS_TYPE>> &data) {
     metadata.setRootPosition(root);
 
     close_files();
+
+    // Insert the rest of records
+    if (data.size() > max_records(ISAM_LEVELS)) {
+        while (index < data.size()) {
+            this->add(data[index]);
+            ++index;
+        }
+    }
 }
 
 template<typename KeyType>
